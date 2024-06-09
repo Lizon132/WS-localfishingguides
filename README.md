@@ -1,68 +1,28 @@
-# Fishing Guide Scraper
+# Web Scraper Application
 
-Fishing Guide Scraper is a Python application designed to scrape fishing guide information from the website [localfishingguides.com](https://localfishingguides.com). The application uses BeautifulSoup for web scraping and Tkinter for a graphical user interface (GUI).
+This Python application is designed to scrape business directory data from a specified URL and save the extracted data to a CSV file. The application features a graphical user interface (GUI) built with Tkinter and uses the Google Custom Search API to find missing email addresses.
 
 ## Features
 
-- Scrapes fishing guide information from multiple states.
-- Collects guide details such as name, captain, phone number, email, website, Facebook URL, and profile URL.
-- Saves the scraped data into a CSV file.
-- Provides a GUI for easy interaction and monitoring of the scraping process.
-- Logs scraping progress and errors in real-time within the application.
+- Scrapes business data from multiple pages of a business directory.
+- Extracts information such as business name, phone number, website, physical address, operating hours, and email address.
+- Uses Google Custom Search API to find missing email addresses.
+- Displays progress and logs in the GUI during the scraping process.
+- Saves the scraped data to a CSV file.
 
 ## Requirements
 
-- Python 3.6+
-- Requests
-- BeautifulSoup4
-- Tkinter
+- Python 3.x
+- `beautifulsoup4`
+- `requests`
+- `google-api-python-client`
+- `tkinter` (usually included with Python)
 
-## Installation
+## Setup
 
-1. **Clone the repository:**
+### 1. Install Dependencies
 
-    ```sh
-    git clone https://github.com/yourusername/fishing-guide-scraper.git
-    cd fishing-guide-scraper
-    ```
+Ensure you have all necessary dependencies installed. Run this command in your terminal:
 
-2. **Create a virtual environment:**
-
-    ```sh
-    python -m venv env
-    source env/bin/activate  # On Windows use `env\Scripts\activate`
-    ```
-
-3. **Install the dependencies:**
-
-    ```sh
-    pip install -r requirements.txt
-    ```
-
-## Usage
-
-1. **Run the application:**
-
-    ```sh
-    python main.py
-    ```
-
-2. **Using the GUI:**
-
-    - Enter the main URL to scrape (default is set to `https://localfishingguides.com/find-a-guide`).
-    - Select the output CSV file location where the scraped data will be saved.
-    - Click the "Start Scraping" button to begin the scraping process.
-    - Monitor the scraping progress and logs in the provided text box within the application.
-
-## File Structure
-
-```plaintext
-FishingGuideScraper/
-│
-├── fetch.py          # Handles fetching HTML content from URLs
-├── scrape.py         # Contains functions to scrape the main page and guide pages
-├── utils.py          # Utility functions for logging and error handling
-├── gui.py            # Manages the GUI components and user interactions
-├── main.py           # Entry point for the application
-├── .gitignore        # Git ignore file to exclude certain files from the repository
-└── README.md         # This README file
+```sh
+pip install -r requirements.txt
