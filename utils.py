@@ -1,24 +1,27 @@
 import logging
-import tkinter as tk
 
-class TextHandler(logging.Handler):
-    def __init__(self, text_widget):
-        logging.Handler.__init__(self)
-        self.text_widget = text_widget
+def save_to_csv(businesses, filename='businesses.csv'):
+    if not businesses:
+        logging.error("No businesses to save to CSV")
+        return
 
-    def emit(self, record):
-        msg = self.format(record)
-        def append():
-            self.text_widget.insert(tk.END, msg + '\n')
-            self.text_widget.yview(tk.END)
-        self.text_widget.after(0, append)
+    keys = ['name', 'phone', 'website', 'address', 'hours', 'email']
+    with open(filename, 'w', newline='', encoding='utf-8') as output_file:
+        dict_writer = csv.DictWriter(output_file, fieldnames=keys)
+        dict_writer.writeheader()
+        dict_writer.writerows(businesses)
+    
+    logging.info(f"Saved {len(businesses)} businesses to {filename}")
 
 def configure_logging(log_text):
-    handler = TextHandler(log_text)
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+
+    class TextHandler(logging.Handler):
+        def emit(self, record):
+            msg = self.format(record)
+            log_text.insert('end', f"{msg}\n")
+            log_text.yview(tk.END)
+
+    handler = TextHandler()
     logger.addHandler(handler)

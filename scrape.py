@@ -1,90 +1,83 @@
+import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import logging
-import time
-from fetch import get_html
-import tkinter as tk  # Import tkinter to use tk.END and log_text.yview
+
+def get_html(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.text
 
 def scrape_main_page(url, log_text):
-    try:
-        logging.info(f"Scraping main page: {url}")
-        html_content = get_html(url)
-        soup = BeautifulSoup(html_content, 'html.parser')
-        
-        state_sections = soup.select('.col-md-12 > .row')
-        guide_links = []
-        current_state = None
+    businesses = []
+    page = 1
 
-        for section in state_sections:
-            state_header = section.select_one('h3')
-            if state_header:
-                current_state = state_header.get_text()
-            guides = section.select('.waters-list > li > a')
-            logging.info(f"Found {len(guides)} guides in {current_state}")
-            for guide in guides:
-                guide_url = urljoin(url, guide['href'])  # Convert to absolute URL
-                guide_location = guide.get_text()
-                guide_links.append({'state': current_state, 'url': guide_url, 'location': guide_location})
-                log_text.insert(tk.END, f"Found guide page: {guide_url} in {current_state}\n")
-                log_text.yview(tk.END)
-        
-        return guide_links
-    except Exception as e:
-        logging.error(f"Error scraping main page: {e}")
-        raise
+    while True:
+        page_url = f"{url}?page={page}"
+        try:
+            log_text.insert('end', f"Scraping main page: {page_url}\n")
+            html_content = get_html(page_url)
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            business_elements = soup.select('.grid_element')
 
-def scrape_guide_page(url, state, location, log_text):
-    try:
-        logging.info(f"Scraping guide page: {url}")
-        log_text.insert(tk.END, f"Scraping URL: {url}\n")
-        log_text.yview(tk.END)
-        
-        html_content = get_html(url)
-        soup = BeautifulSoup(html_content, 'html.parser')
-        
-        # Verify the table location
-        table = soup.select_one('#table tbody')
-        if not table:
-            logging.error(f"Table not found on {url}")
-            return []
-        
-        table_rows = table.select('tr')
-        logging.info(f"Found {len(table_rows)} rows in the table on {url}")
+            if not business_elements:
+                break  # Exit the loop if no more business elements are found
 
-        guides = []
-
-        for row in table_rows:
-            guide_link = row.select_one('h4 a')
-            if guide_link:  # Skip rows without guide data
-                try:
-                    name = guide_link.get_text()
-                    captain = row.select_one('td > p').get_text()
-                    phone = row.select_one('a[href^="tel:"]').get_text() if row.select_one('a[href^="tel:"]') else ''
-                    email = row.select_one('a[href^="mailto:"]').get_text() if row.select_one('a[href^="mailto:"]') else ''
-                    website = row.select_one('a[target="_blank"][rel="nofollow"]').get('href') if row.select_one('a[target="_blank"][rel="nofollow"]') else ''
-                    facebook = row.select('a[href*="facebook.com"]')[-1].get('href') if row.select('a[href*="facebook.com"]') else ''
-                    profile_url = urljoin(url, row.select_one('.btn.btn-primary')['href']) if row.select_one('.btn.btn-primary') else ''
+            for element in business_elements:
+                name_tag = element.select_one('a[title]')
+                phone_tag = element.select_one('.member-search-phone')
+                profile_url_tag = element.select_one('a.center-block[title]')
+                
+                if name_tag and profile_url_tag:
+                    name = name_tag.get('title').strip()
+                    phone = phone_tag.get_text(strip=True) if phone_tag else ''
+                    profile_url = urljoin(url, profile_url_tag.get('href'))
                     
-                    # Debug prints
-                    logging.info(f"Scraped data from {url}: Name: {name}, Captain: {captain}, Phone: {phone}, Email: {email}, Website: {website}, Facebook: {facebook}, Profile URL: {profile_url}")
-                    
-                    guides.append({
-                        'state': state,
-                        'location': location,
+                    businesses.append({
                         'name': name,
-                        'captain': captain,
                         'phone': phone,
-                        'email': email,
-                        'website': website,
-                        'facebook': facebook,
                         'profile_url': profile_url
                     })
-                except Exception as e:
-                    logging.error(f"Error scraping guide data from {url}: {e}")
+
+            log_text.insert('end', f"Found {len(business_elements)} businesses on page {page}\n")
+            page += 1
+        except Exception as e:
+            logging.error(f"Error scraping main page: {e}")
+            log_text.insert('end', f"Error scraping main page: {e}\n")
+            break
+
+    return businesses
+
+def scrape_profile_page(profile_url, log_text):
+    try:
+        log_text.insert('end', f"Scraping profile page: {profile_url}\n")
+        html_content = get_html(profile_url)
+        soup = BeautifulSoup(html_content, 'html.parser')
         
-        if not guides:
-            logging.error(f"No guides found on {url}")
-        return guides
+        website_tag = soup.select_one('.weblink')
+        address_tag = soup.select_one('.bold:contains("Location") + div')
+        hours_tag = soup.select_one('.bold:contains("Hours of Operation") + div')
+        email_tag = soup.select_one('a[href^="mailto:"]')
+        
+        website = website_tag.get('href').strip() if website_tag else ''
+        address = address_tag.get_text(strip=True) if address_tag else ''
+        hours = hours_tag.get_text(strip=True) if hours_tag else ''
+        email = email_tag.get('href').replace('mailto:', '').strip() if email_tag else ''
+        
+        log_text.insert('end', f"Scraped profile page: {profile_url}\n")
+        return {
+            'website': website,
+            'address': address,
+            'hours': hours,
+            'email': email
+        }
     except Exception as e:
-        logging.error(f"Error scraping guide page {url}: {e}")
-        raise
+        logging.error(f"Error scraping profile page {profile_url}: {e}")
+        log_text.insert('end', f"Error scraping profile page {profile_url}: {e}\n")
+        return {
+            'website': '',
+            'address': '',
+            'hours': '',
+            'email': ''
+        }
